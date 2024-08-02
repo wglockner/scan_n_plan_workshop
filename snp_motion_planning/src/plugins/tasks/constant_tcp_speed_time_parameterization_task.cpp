@@ -12,12 +12,9 @@
 #include <tesseract_command_language/poly/move_instruction_poly.h>
 #include <tesseract_time_parameterization/core/instructions_trajectory.h>
 
-#include <tesseract_task_composer/core/task_composer_context.h>
-#include <tesseract_task_composer/core/task_composer_data_storage.h>
 #include <tesseract_task_composer/core/task_composer_task.h>
 #include <tesseract_task_composer/core/task_composer_plugin_factory.h>
 #include <tesseract_task_composer/core/task_composer_plugin_factory_utils.h>
-#include <tesseract_task_composer/core/task_composer_task_plugin_factory.h>
 #include <tesseract_task_composer/planning/planning_task_composer_problem.h>
 
 namespace snp_motion_planning
@@ -101,9 +98,8 @@ protected:
     if (input_data_poly.isNull() ||
         input_data_poly.getType() != std::type_index(typeid(tesseract_planning::CompositeInstruction)))
     {
-      info->status_message = "Input results to constant TCP speed time parameterization must be a composite "
-                             "instruction";
-      CONSOLE_BRIDGE_logError("%s", info->status_message.c_str());
+      info->message = "Input results to constant TCP speed time parameterization must be a composite instruction";
+      CONSOLE_BRIDGE_logError("%s", info->message.c_str());
       return info;
     }
 
@@ -122,7 +118,7 @@ protected:
     auto flattened = ci.flatten(tesseract_planning::moveFilter);
     if (flattened.empty())
     {
-      info->status_message = "Cartesian time parameterization found no MoveInstructions to process";
+      info->message = "Cartesian time parameterization found no MoveInstructions to process";
       info->return_value = 1;
       return info;
     }
@@ -139,13 +135,13 @@ protected:
     if (!solver.compute(*trajectory, cur_composite_profile->max_velocity_scaling_factor,
                         cur_composite_profile->max_acceleration_scaling_factor))
     {
-      info->status_message =
+      info->message =
           "Failed to perform constant TCP speed time parameterization for process input: " + ci.getDescription();
       return info;
     }
 
     info->color = "green";
-    info->status_message = "Constant TCP speed time parameterization succeeded";
+    info->message = "Constant TCP speed time parameterization succeeded";
     context.data_storage->setData(output_keys_[0], input_data_poly);
     info->return_value = 1;
     return info;

@@ -12,12 +12,9 @@
 #include <tesseract_command_language/poly/move_instruction_poly.h>
 #include <tesseract_time_parameterization/core/instructions_trajectory.h>
 
-#include <tesseract_task_composer/core/task_composer_context.h>
-#include <tesseract_task_composer/core/task_composer_data_storage.h>
 #include <tesseract_task_composer/core/task_composer_task.h>
 #include <tesseract_task_composer/core/task_composer_plugin_factory.h>
 #include <tesseract_task_composer/core/task_composer_plugin_factory_utils.h>
-#include <tesseract_task_composer/core/task_composer_task_plugin_factory.h>
 #include <tesseract_task_composer/planning/planning_task_composer_problem.h>
 
 namespace snp_motion_planning
@@ -100,7 +97,7 @@ protected:
     auto flattened = ci.flatten(tesseract_planning::moveFilter);
     if (flattened.empty())
     {
-      info->status_message = "TCP speed limiter task found no MoveInstructions to process";
+      info->message = "TCP speed limiter task found no MoveInstructions to process";
       info->return_value = 1;
       return info;
     }
@@ -116,12 +113,12 @@ protected:
     }
     catch (const std::exception& ex)
     {
-      info->status_message = ex.what();
+      info->message = ex.what();
       return info;
     }
 
     info->color = "green";
-    info->status_message = "TCP speed limiter task succeeded";
+    info->message = "TCP speed limiter task succeeded";
     context.data_storage->setData(output_keys_[0], input_data_poly);
     info->return_value = 1;
     return info;

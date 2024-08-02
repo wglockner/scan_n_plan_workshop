@@ -22,8 +22,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <Eigen/Geometry>
 #include <tesseract_kinematics/ikfast/impl/ikfast_inv_kin.hpp>
 #include <tesseract_kinematics/core/kinematics_plugin_factory.h>
-#include <tesseract_scene_graph/graph.h>
-#include <tesseract_scene_graph/joint.h>
 #include "motoman_hc10_ikfast_solver.hpp"
 #include <vector>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP

@@ -11,14 +11,11 @@
 #include <tesseract_command_language/composite_instruction.h>
 #include <tesseract_command_language/poly/move_instruction_poly.h>
 #include <tesseract_time_parameterization/core/instructions_trajectory.h>
-#include <tesseract_environment/environment.h>
+//#include <tesseract_common/kinematic_limits.h>
 
-#include <tesseract_task_composer/core/task_composer_context.h>
-#include <tesseract_task_composer/core/task_composer_data_storage.h>
 #include <tesseract_task_composer/core/task_composer_task.h>
 #include <tesseract_task_composer/core/task_composer_plugin_factory.h>
 #include <tesseract_task_composer/core/task_composer_plugin_factory_utils.h>
-#include <tesseract_task_composer/core/task_composer_task_plugin_factory.h>
 #include <tesseract_task_composer/planning/planning_task_composer_problem.h>
 
 namespace snp_motion_planning
@@ -99,8 +96,8 @@ protected:
     if (input_data_poly.isNull() ||
         input_data_poly.getType() != std::type_index(typeid(tesseract_planning::CompositeInstruction)))
     {
-      info->status_message = "Input results to kinimatic limits check must be a composite instruction";
-      CONSOLE_BRIDGE_logError("%s", info->status_message.c_str());
+      info->message = "Input results to kinimatic limits check must be a composite instruction";
+      CONSOLE_BRIDGE_logError("%s", info->message.c_str());
       return info;
     }
 
@@ -119,7 +116,7 @@ protected:
     auto flattened = ci.flatten(tesseract_planning::moveFilter);
     if (flattened.empty())
     {
-      info->status_message = "Kinematic limits check found no MoveInstructions to process";
+      info->message = "Kinematic limits check found no MoveInstructions to process";
       info->return_value = 1;
       return info;
     }
@@ -140,22 +137,27 @@ protected:
 
       if (cur_composite_profile->check_position)
       {
-        if (!tesseract_common::satisfiesLimits<double>(joint_pos, motion_group->getLimits().joint_limits))
+        if (!tesseract_common::satisfiesPositionLimits<double>(joint_pos, motion_group->getLimits().joint_limits))
         {
           std::stringstream ss;
           ss << "Joint position limit violation(s) at waypoint " << i;
-          info->status_message = ss.str();
+          info->message = ss.str();
           return 0;
         }
       }
 
       if (cur_composite_profile->check_velocity)
       {
-        if (!tesseract_common::satisfiesLimits<double>(joint_vel, motion_group->getLimits().velocity_limits))
+        // Check for joint velocity limit violations
+        Eigen::Array<bool, Eigen::Dynamic, 1> vel_limit_violations =
+            motion_group->getLimits().velocity_limits.array() < joint_vel.array().abs();
+        if (vel_limit_violations.any())
         {
+          Eigen::ArrayXd capacity = 100.0 * joint_vel.array().abs() / motion_group->getLimits().velocity_limits.array();
           std::stringstream ss;
-          ss << "Joint velocity limit violation(s) at waypoint " << i;
-          info->status_message = ss.str();
+          ss << "Joint velocity limit violation(s) at waypoint " << i << ": "
+             << capacity.transpose().format(Eigen::IOFormat(4, 0, " ", "\n", "[", "]")) << " (%% capacity)";
+          info->message = ss.str();
 
           return 0;
         }
@@ -164,11 +166,16 @@ protected:
       if (cur_composite_profile->check_acceleration)
       {
         // Check for joint velocity acceleration limit violations
-        if (!tesseract_common::satisfiesLimits<double>(joint_acc, motion_group->getLimits().acceleration_limits))
+        Eigen::Array<bool, Eigen::Dynamic, 1> acc_limit_violations =
+            motion_group->getLimits().acceleration_limits.array() < joint_acc.array().abs();
+        if (acc_limit_violations.any())
         {
+          Eigen::ArrayXd capacity =
+              100.0 * joint_acc.array().abs() / motion_group->getLimits().acceleration_limits.array();
           std::stringstream ss;
-          ss << "Joint acceleration limit violation(s) at waypoint " << i;
-          info->status_message = ss.str();
+          ss << "Joint acceleration limit violation(s) at waypoint " << i << ": "
+             << capacity.transpose().format(Eigen::IOFormat(4, 0, " ", "\n", "[", "]")) << " (%% capacity)";
+          info->message = ss.str();
 
           return 0;
         }
@@ -177,7 +184,7 @@ protected:
 
     info->color = "green";
     info->return_value = 1;
-    info->status_message = "Kinematic limits check succeeded";
+    info->message = "Kinematic limits check succeeded";
     return info;
   }
 
