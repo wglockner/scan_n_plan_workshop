@@ -5,6 +5,7 @@ import sys
 import open3d
 from industrial_reconstruction_msgs.srv import StartReconstruction
 from industrial_reconstruction_msgs.srv import StopReconstruction
+from industrial_reconstruction_msgs.srv import StartEnhancedReconstruction
 from industrial_reconstruction.industrial_reconstruction import meshToRos
 from visualization_msgs.msg import Marker
 import shutil
@@ -20,6 +21,7 @@ class ReconstructionSimServer(Node):
         super().__init__("reconstruction_sim_node")
 
         self.start_srv = self.create_service(StartReconstruction, "start_reconstruction", self.start_cb)
+        self.start_enhanced_srv = self.create_service(StartEnhancedReconstruction, "start_enhanced_reconstruction", self.start_enhanced_cb)
         self.stop_srv = self.create_service(StopReconstruction, "stop_reconstruction", self.stop_cb)
 
         self.scan_mesh_pub = self.create_publisher(Marker, MESH_TOPIC, 100)
@@ -31,6 +33,13 @@ class ReconstructionSimServer(Node):
 
     def start_cb(self, _request, response):
         response.success = True
+        return response
+
+    def start_enhanced_cb(self, _request, response):
+        # Enhanced reconstruction simulation - log the enhanced parameters
+        self.get_logger().info("Enhanced reconstruction started with improved mesh quality features")
+        response.success = True
+        response.message = "Enhanced reconstruction simulation started successfully"
         return response
 
     def stop_cb(self, request, response):
