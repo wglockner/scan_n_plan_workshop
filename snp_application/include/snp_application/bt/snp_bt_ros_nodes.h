@@ -10,6 +10,7 @@
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 #include <industrial_reconstruction_msgs/srv/start_reconstruction.hpp>
 #include <industrial_reconstruction_msgs/srv/stop_reconstruction.hpp>
+#include <industrial_reconstruction_msgs/srv/start_enhanced_reconstruction.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <snp_msgs/srv/execute_motion_plan.hpp>
 #include <snp_msgs/srv/generate_motion_plan.hpp>
@@ -31,23 +32,24 @@ public:
   inline BT::NodeStatus onFailure(BT::ServiceNodeErrorCode error) override
   {
     std::stringstream ss;
-    ss << "Service '" << BT::RosServiceNode<T>::service_name_ << "'";
+    ss << "Service failed: ";
 
     switch (error)
     {
       case BT::SERVICE_UNREACHABLE:
-        ss << " is unreachable";
+        ss << "service is unreachable";
         break;
       case BT::SERVICE_TIMEOUT:
-        ss << " timed out";
+        ss << "service timed out";
         break;
       case BT::INVALID_REQUEST:
-        ss << " was sent an invalid request";
+        ss << "service was sent an invalid request";
         break;
       case BT::SERVICE_ABORTED:
-        ss << " was aborted";
+        ss << "service was aborted";
         break;
       default:
+        ss << "unknown error";
         break;
     }
 
@@ -66,29 +68,30 @@ public:
   inline BT::NodeStatus onFailure(BT::ActionNodeErrorCode error) override
   {
     std::stringstream ss;
-    ss << "Action '" << BT::RosActionNode<T>::action_name_ << "' failed: '";
+    ss << "Action failed: ";
 
     switch (error)
     {
       case BT::SERVER_UNREACHABLE:
-        ss << "server unreachable'";
+        ss << "server unreachable";
         break;
       case BT::SEND_GOAL_TIMEOUT:
-        ss << "goal timed out'";
+        ss << "goal timed out";
         break;
       case BT::GOAL_REJECTED_BY_SERVER:
-        ss << "goal rejected by server'";
+        ss << "goal rejected by server";
         break;
       case BT::ACTION_ABORTED:
-        ss << "action aborted'";
+        ss << "action aborted";
         break;
       case BT::ACTION_CANCELLED:
-        ss << "action cancelled'";
+        ss << "action cancelled";
         break;
       case BT::INVALID_GOAL:
-        ss << "invalid goal'";
+        ss << "invalid goal";
         break;
       default:
+        ss << "unknown error";
         break;
     }
 
@@ -240,6 +243,17 @@ public:
   BT::NodeStatus onResponseReceived(const typename Response::SharedPtr& response) override;
 };
 
+class StartEnhancedReconstructionServiceNode
+  : public SnpRosServiceNode<industrial_reconstruction_msgs::srv::StartEnhancedReconstruction>
+{
+public:
+  using SnpRosServiceNode<industrial_reconstruction_msgs::srv::StartEnhancedReconstruction>::providedPorts;
+  using SnpRosServiceNode<industrial_reconstruction_msgs::srv::StartEnhancedReconstruction>::SnpRosServiceNode;
+
+  bool setRequest(typename Request::SharedPtr& request) override;
+  BT::NodeStatus onResponseReceived(const typename Response::SharedPtr& response) override;
+};
+
 class ToolPathsPubNode : public BT::RosTopicPubNode<geometry_msgs::msg::PoseArray>
 {
 public:
@@ -293,11 +307,11 @@ public:
              BT::OutputPort<trajectory_msgs::msg::JointTrajectory>(TRAJECTORY_OUTPUT_PORT_KEY) };
   }
   explicit UpdateTrajectoryStartStateNode(const std::string& instance_name, const BT::NodeConfig& config,
-                                          rclcpp::Node::SharedPtr node);
+                                          const BT::RosNodeParams& params);
 
 protected:
   BT::NodeStatus tick() override;
-  rclcpp::Node::SharedPtr node_;
+  std::weak_ptr<rclcpp::Node> node_;
 };
 
 class ReverseTrajectoryNode : public BT::SyncActionNode
@@ -358,12 +372,12 @@ public:
     return {};
   }
 
-  explicit RosSpinnerNode(const std::string& instance_name, const BT::NodeConfig& config, rclcpp::Node::SharedPtr node);
+  explicit RosSpinnerNode(const std::string& instance_name, const BT::NodeConfig& config, const BT::RosNodeParams& params);
 
 protected:
   BT::NodeStatus tick() override;
 
-  rclcpp::Node::SharedPtr node_;
+  std::weak_ptr<rclcpp::Node> node_;
 };
 
 }  // namespace snp_application

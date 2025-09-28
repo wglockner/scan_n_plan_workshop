@@ -1,0 +1,96 @@
+# Enhanced Reconstruction Configuration Example
+# This file demonstrates how to configure the enhanced reconstruction features
+# for improved mesh quality in the Scan-N-Plan workshop
+
+# Basic reconstruction parameters (same as before)
+ir:
+  tsdf:
+    voxel_length: 0.01
+    sdf_trunc: 0.03
+    min:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    max:
+      x: 2.0
+      y: 2.0
+      z: 1.0
+  rgbd:
+    depth_scale: 1000.0
+    depth_trunc: 1.1
+    convert_rgb_to_intensity: false
+  live: true
+  min_faces: 1000
+  normal_angle_tol: 90.0
+  normal_x: 0.0
+  normal_y: 0.0
+  normal_z: 1.0
+  archive_dir: "/tmp/industrial_reconstruction_archive"
+
+# Enhanced reconstruction parameters for improved mesh quality
+  enhanced:
+    # Core enhanced features
+    enable_depth_preprocessing: true
+    enable_mesh_postprocessing: true
+    enable_adaptive_params: true
+    quality_mode: "balanced"  # Options: "speed", "quality", "balanced", "accuracy"
+    scene_type: "industrial"  # Options: "indoor", "outdoor", "industrial", "textured"
+    
+    # Depth preprocessing parameters
+    bilateral_d: 9.0
+    bilateral_sigma_color: 75.0
+    bilateral_sigma_space: 75.0
+    median_kernel_size: 5.0
+    morphological_kernel_size: 3.0
+    temporal_alpha: 0.1
+    outlier_std_threshold: 2.0
+    max_hole_size: 10.0
+    
+    # Mesh post-processing parameters
+    smoothing_iterations: 3
+    smoothing_lambda: 0.5
+    decimation_ratio: 0.5
+    target_edge_length: 0.02
+    hole_filling_diameter: 0.1
+    curvature_threshold: 0.1
+    quality_threshold: 0.8
+    
+    # Advanced filtering options
+    enable_bilateral_smoothing: true
+    enable_curvature_smoothing: true
+    enable_laplacian_smoothing: true
+    enable_topology_optimization: true
+    enable_hole_filling: true
+    enable_outlier_removal: true
+
+# Quality mode presets for different use cases:
+# 
+# Speed Mode (fastest processing):
+#   quality_mode: "speed"
+#   enable_depth_preprocessing: false
+#   enable_mesh_postprocessing: false
+#   enable_adaptive_params: false
+#
+# Quality Mode (maximum quality):
+#   quality_mode: "quality"
+#   enable_depth_preprocessing: true
+#   enable_mesh_postprocessing: true
+#   enable_adaptive_params: true
+#   smoothing_iterations: 5
+#   decimation_ratio: 0.3
+#
+# Accuracy Mode (highest geometric accuracy):
+#   quality_mode: "accuracy"
+#   enable_depth_preprocessing: true
+#   enable_mesh_postprocessing: true
+#   enable_adaptive_params: true
+#   bilateral_d: 15.0
+#   smoothing_lambda: 0.3
+#   target_edge_length: 0.01
+#
+# Balanced Mode (recommended default):
+#   quality_mode: "balanced"
+#   enable_depth_preprocessing: true
+#   enable_mesh_postprocessing: true
+#   enable_adaptive_params: true
+
