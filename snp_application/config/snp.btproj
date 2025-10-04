@@ -75,11 +75,11 @@
         <Decorator ID="SetPage" editable="true">
             <input_port name="index" default="0"/>
         </Decorator>
-        <Action ID="StartReconstructionService" editable="true">
-            <input_port name="service_name" default="start_reconstruction"/>
-        </Action>
         <Action ID="StartEnhancedReconstructionService" editable="true">
             <input_port name="service_name" default="start_enhanced_reconstruction"/>
+        </Action>
+        <Action ID="StartReconstructionService" editable="true">
+            <input_port name="service_name" default="start_reconstruction"/>
         </Action>
         <Action ID="StopReconstructionService" editable="true">
             <input_port name="service_name" default="stop_reconstruction"/>

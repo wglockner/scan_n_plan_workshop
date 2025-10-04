@@ -126,11 +126,13 @@
                             disapprove_button="back"
                             _description="Press next to approve the scan motion plan and proceed to scan motion execution"/>
           </SetPage>
-          <SubTree ID="scan"
-                   approach="{scan_approach}"
-                   process="{scan_process}"
-                   departure="{scan_departure}"
-                   _autoremap="true"/>
+          <Repeat num_cycles="3">
+            <SubTree ID="scan"
+                     approach="{scan_approach}"
+                     process="{scan_process}"
+                     departure="{scan_departure}"
+                     _autoremap="true"/>
+          </Repeat>
         </Sequence>
       </Progress>
       <Progress start="40"
@@ -343,11 +345,6 @@
             editable="true">
       <input_port name="service_name"
                   default="start_reconstruction"/>
-    </Action>
-    <Action ID="StartEnhancedReconstructionService"
-            editable="true">
-      <input_port name="service_name"
-                  default="start_enhanced_reconstruction"/>
     </Action>
     <Action ID="StopReconstructionService"
             editable="true">
