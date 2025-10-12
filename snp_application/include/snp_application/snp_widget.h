@@ -8,6 +8,11 @@
 #include <rclcpp_action/client.hpp>
 #include <rclcpp/executors/single_threaded_executor.hpp>
 
+namespace snp_application
+{
+class BTThread;
+}
+
 namespace Ui
 {
 class SNPWidget;
@@ -22,6 +27,7 @@ class SNPWidget : public QWidget
 {
 public:
   explicit SNPWidget(rclcpp::Node::SharedPtr rviz_node, QWidget* parent = nullptr);
+  ~SNPWidget();
 
 protected:
   void runTreeWithThread(const std::string& bt_tree_name);
@@ -37,6 +43,7 @@ protected:
   Ui::SNPWidget* ui_;
   BT::Blackboard::Ptr board_;
   std::shared_ptr<BT::StatusChangeLogger> logger_;
+  BTThread* current_bt_thread_;
 };
 
 }  // namespace snp_application
