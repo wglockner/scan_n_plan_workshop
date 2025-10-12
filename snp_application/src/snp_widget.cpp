@@ -24,6 +24,7 @@ static const char* BT_FREESPACE_PARAM = "freespace_tree";
 static const char* BT_TIMEOUT_PARAM = "bt_timeout";
 static const char* FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory_action";
 static const char* HOME_STATE_NAME = "home_state";
+static const char* GROOT2_PORT_PARAM = "groot2_port";
 
 class TPPDialog : public QDialog
 {
@@ -56,6 +57,7 @@ SNPWidget::SNPWidget(rclcpp::Node::SharedPtr rviz_node, QWidget* parent)
   , tpp_node_(std::make_shared<rclcpp::Node>("snp_application_tpp"))
   , ui_(new Ui::SNPWidget())
   , board_(BT::Blackboard::create())
+  , current_bt_thread_(nullptr)
 {
   ui_->setupUi(this);
   ui_->group_box_operation->setEnabled(false);
@@ -136,6 +138,7 @@ SNPWidget::SNPWidget(rclcpp::Node::SharedPtr rviz_node, QWidget* parent)
   bt_node_->declare_parameter<std::string>(BT_PARAM, "");
   bt_node_->declare_parameter<int>(BT_TIMEOUT_PARAM, 6000);  // seconds
   bt_node_->declare_parameter<std::string>(FOLLOW_JOINT_TRAJECTORY_ACTION, "follow_joint_trajectory");
+  bt_node_->declare_parameter<int>(GROOT2_PORT_PARAM, 1667);  // Default Groot2 port
 
   // Home state
   bt_node_->declare_parameter<std::string>(BT_FREESPACE_PARAM, "");
@@ -158,6 +161,17 @@ SNPWidget::SNPWidget(rclcpp::Node::SharedPtr rviz_node, QWidget* parent)
   board_->set("execute", static_cast<QAbstractButton*>(ui_->push_button_motion_execution));
   board_->set("tpp_config", static_cast<QAbstractButton*>(ui_->tool_button_tpp));
   board_->set("skip_scan", false);
+}
+
+SNPWidget::~SNPWidget()
+{
+  // Clean up any running behavior tree thread
+  if (current_bt_thread_ && current_bt_thread_->isRunning()) {
+    current_bt_thread_->quit();
+    current_bt_thread_->wait();
+    current_bt_thread_->deleteLater();
+    current_bt_thread_ = nullptr;
+  }
 }
 
 std::unique_ptr<BT::BehaviorTreeFactory> SNPWidget::createBTFactory(int ros_timeout)
@@ -199,7 +213,13 @@ void SNPWidget::runTreeWithThread(const std::string& bt_tree_name)
 {
   try
   {
-    auto* thread = new BTThread(this);
+    // Clean up any existing thread first
+    if (current_bt_thread_ && current_bt_thread_->isRunning()) {
+      current_bt_thread_->quit();
+      current_bt_thread_->wait();
+      current_bt_thread_->deleteLater();
+      current_bt_thread_ = nullptr;
+    }
 
     // Create the BT factory
     std::unique_ptr<BT::BehaviorTreeFactory> bt_factory =
@@ -212,13 +232,20 @@ void SNPWidget::runTreeWithThread(const std::string& bt_tree_name)
     for (const std::string& file : bt_files)
       bt_factory->registerBehaviorTreeFromFile(file);
 
-    thread->tree = bt_factory->createTree(bt_tree_name, board_);
-    logger_ = std::make_shared<TextEditLogger>(thread->tree.rootNode(), ui_->text_edit_log);
+    auto tree = bt_factory->createTree(bt_tree_name, board_);
+    
+    // Get Groot2 port parameter
+    unsigned groot2_port = get_parameter<int>(bt_node_, GROOT2_PORT_PARAM);
+    
+    // Create BTThread with Groot2 support
+    current_bt_thread_ = new BTThread(std::move(tree), groot2_port, this);
+    
+    logger_ = std::make_shared<TextEditLogger>(current_bt_thread_->tree.rootNode(), ui_->text_edit_log);
 
-    connect(thread, &BTThread::finished, [thread, this]() {
+    connect(current_bt_thread_, &BTThread::finished, [this]() {
       QString message;
       QTextStream stream(&message);
-      switch (thread->result)
+      switch (current_bt_thread_->result)
       {
         case BT::NodeStatus::SUCCESS:
           stream << "Behavior tree completed successfully";
@@ -228,13 +255,17 @@ void SNPWidget::runTreeWithThread(const std::string& bt_tree_name)
           break;
       }
 
-      if (!thread->message.isEmpty())
-        stream << ": '" << thread->message << "'";
+      if (!current_bt_thread_->message.isEmpty())
+        stream << ": '" << current_bt_thread_->message << "'";
 
       QMetaObject::invokeMethod(ui_->text_edit_log, "append", Qt::QueuedConnection, Q_ARG(QString, message));
+      
+      // Clean up the thread after completion
+      current_bt_thread_->deleteLater();
+      current_bt_thread_ = nullptr;
     });
 
-    thread->start();
+    current_bt_thread_->start();
   }
   catch (const std::exception& ex)
   {
