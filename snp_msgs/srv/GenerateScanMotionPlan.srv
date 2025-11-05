@@ -1,4 +1,5 @@
 # Request
+string file_path
 
 ---
 # Response

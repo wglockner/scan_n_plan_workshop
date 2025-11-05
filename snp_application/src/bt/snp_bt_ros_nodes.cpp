@@ -123,8 +123,29 @@ BT::NodeStatus GenerateFreespaceMotionPlanServiceNode::onResponseReceived(const 
   return setOutputAndCheck(TRAJECTORY_OUTPUT_PORT_KEY, response->trajectory);
 }
 
-bool GenerateScanMotionPlanServiceNode::setRequest(typename Request::SharedPtr& /*request*/)
+bool GenerateScanMotionPlanServiceNode::setRequest(typename Request::SharedPtr& request)
 {
+  // Try to get scan_trajectory_path from blackboard, otherwise fall back to parameter
+  std::string file_path;
+  try
+  {
+    file_path = config().blackboard->get<std::string>("scan_trajectory_path");
+  }
+  catch (const std::exception&)
+  {
+    // Fall back to parameter if not in blackboard
+    try
+    {
+      file_path = get_parameter<std::string>(node_.lock(), "scan_trajectory_file");
+    }
+    catch (const std::exception&)
+    {
+      // If neither available, use empty string (node will handle error)
+      file_path = "";
+    }
+  }
+  
+  request->file_path = file_path;
   return true;
 }
 

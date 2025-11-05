@@ -33,7 +33,13 @@ class ScanMotionPlanFromFileNode(Node):
 
     def callback(self, request, response):
         try:
-            with open(self.get_parameter('scan_trajectory_file').value, "r") as file_input:
+            # Use file_path from request if provided, otherwise fall back to parameter
+            if request.file_path and len(request.file_path) > 0:
+                file_path = request.file_path
+            else:
+                file_path = self.get_parameter('scan_trajectory_file').value
+            
+            with open(file_path, "r") as file_input:
                 scan_traj = yaml.safe_load(file_input)
 
             points = scan_traj['points']
